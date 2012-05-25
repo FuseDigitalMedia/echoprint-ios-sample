@@ -20,19 +20,24 @@ extern const char * GetPCMFromFile(char * filename);
 	[self presentModalViewController:mediaPicker animated:YES];
 	
 }
+
+- (void)analyzeFile {
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentsDirectory = [paths objectAtIndex:0];
+    NSString *filePath =[documentsDirectory stringByAppendingPathComponent:@"output.caf"];
+    [statusLine setText:@"analysing..."];
+    [statusLine setNeedsDisplay];
+    [self.view setNeedsDisplay];
+    const char * fpCode = GetPCMFromFile((char*) [filePath cStringUsingEncoding:NSASCIIStringEncoding]);
+    [self getSong:fpCode];
+}
+
 - (IBAction) startMicrophone:(id)sender {
 	if(recording) {
 		recording = NO;
 		[recorder stopRecording];
 		[recordButton setTitle:@"Record" forState:UIControlStateNormal];
-		NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-		NSString *documentsDirectory = [paths objectAtIndex:0];
-		NSString *filePath =[documentsDirectory stringByAppendingPathComponent:@"output.caf"];
-		[statusLine setText:@"analysing..."];
-		[statusLine setNeedsDisplay];
-		[self.view setNeedsDisplay];
-		const char * fpCode = GetPCMFromFile((char*) [filePath cStringUsingEncoding:NSASCIIStringEncoding]);
-        [self getSong:fpCode];
+		[self analyzeFile];
 	} else {
 		[statusLine setText:@"recording..."];
 		recording = YES;
@@ -45,6 +50,9 @@ extern const char * GetPCMFromFile(char * filename);
 
 }
 
+- (IBAction)retestExistingAudio:(id)sender {
+    [self analyzeFile];
+}
 
 - (void)mediaPicker:(MPMediaPickerController *)mediaPicker 
   didPickMediaItems:(MPMediaItemCollection *)mediaItemCollection {
@@ -101,8 +109,6 @@ extern const char * GetPCMFromFile(char * filename);
 	[statusLine setNeedsDisplay];
 	[self.view setNeedsDisplay];
 }
-
-
 
 - (void)mediaPickerDidCancel:(MPMediaPickerController *)mediaPicker {
 	[self dismissModalViewControllerAnimated:YES];

@@ -29,6 +29,7 @@
 
 - (IBAction)pickSong:(id)sender;
 - (IBAction)startMicrophone:(id)sender;
+- (IBAction)retestExistingAudio:(id)sender;
 - (void) getSong: (const char*) fpCode;
 
 @end
