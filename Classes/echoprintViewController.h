@@ -36,6 +36,7 @@
 - (IBAction)pickSong:(id)sender;
 - (IBAction)startMicrophone:(id)sender;
 - (IBAction)retestExistingAudio:(id)sender;
+- (IBAction)playExistingAudio:(id)sender;
 
 @end
 

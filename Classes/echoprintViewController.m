@@ -41,7 +41,11 @@ extern const char * GetPCMFromFile(char * filename);
 - (void)timerFireMethod:(NSTimer*)theTimer {
     self.counter++;
     NSLog(@"Timer count:%d", self.counter);
-    [self analyzeFile];
+    [self performSelectorInBackground:@selector(analyzeFile) withObject:nil];
+    
+    if (counter == 6) {
+        [self stopRecordingSound];
+    }
 }
 
 - (void)stopRepeatingTimer {
@@ -49,31 +53,43 @@ extern const char * GetPCMFromFile(char * filename);
     self.repeatingTimer = nil;
 }
 
+- (void)stopRecordingSound {
+    recording = NO;
+    [recorder stopRecording];
+    [recordButton setTitle:@"Record" forState:UIControlStateNormal];
+    [self stopRepeatingTimer];
+}
+
+- (void)startRecordingSound {
+    [statusLine setText:@"recording..."];
+    recording = YES;
+    [recordButton setTitle:@"Stop" forState:UIControlStateNormal];
+    [recorder startRecording];
+    [statusLine setNeedsDisplay];
+    [self.view setNeedsDisplay];
+    self.counter = 0;
+    NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:5.0 
+                                                      target:self selector:@selector(timerFireMethod:) 
+                                                    userInfo:[self userInfo] repeats:YES];
+    self.repeatingTimer = timer;
+}
+
 - (IBAction) startMicrophone:(id)sender {
 	if(recording) {
-		recording = NO;
-		[recorder stopRecording];
-		[recordButton setTitle:@"Record" forState:UIControlStateNormal];
-		[self analyzeFile];
-        [self stopRepeatingTimer];
+        [self performSelectorInBackground:@selector(analyzeFile) withObject:nil];
+		[self stopRecordingSound];
 	} else {
-		[statusLine setText:@"recording..."];
-		recording = YES;
-		[recordButton setTitle:@"Stop" forState:UIControlStateNormal];
-		[recorder startRecording];
-		[statusLine setNeedsDisplay];
-		[self.view setNeedsDisplay];
-        self.counter = 0;
-        NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:5.0 
-                           target:self selector:@selector(timerFireMethod:) 
-                           userInfo:[self userInfo] repeats:YES];
-        self.repeatingTimer = timer;
+		[self startRecordingSound];
 	}
 	NSLog(@"what");
 }
 
 - (IBAction)retestExistingAudio:(id)sender {
     [self analyzeFile];
+}
+
+- (IBAction)playExistingAudio:(id)sender {
+    
 }
 
 - (void)mediaPicker:(MPMediaPickerController *)mediaPicker 
@@ -121,7 +137,7 @@ extern const char * GetPCMFromFile(char * filename);
 			NSString * artist_name = [[songList objectAtIndex:0] objectForKey:@"artist_name"];
 			[statusLine setText:[NSString stringWithFormat:@"%@ - %@", artist_name, song_title]];
 		} else {
-			[statusLine setText:@"no match"];
+			[statusLine setText:[[NSString alloc] initWithFormat:@"No match for try %d", self.counter]];
 		}
 	} else {
 		[statusLine setText:@"some error"];
