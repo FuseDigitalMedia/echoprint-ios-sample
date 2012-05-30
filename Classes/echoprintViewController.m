@@ -188,9 +188,9 @@ extern const char * GetPCMFromFile(char * filename);
     [super viewDidLoad];
 	recorder = [[MicrophoneInput alloc] init];
 	recording = NO;
-    [samplesSlider setValue:6];
+    samples = 6;
+    [samplesSlider setValue:samples];
 }
-
 
 /*
 // Override to allow orientations other than the default portrait orientation.
