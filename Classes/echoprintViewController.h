@@ -16,7 +16,7 @@
 #import "MicrophoneInput.h"
 
 // developer.echonest.com
-#define API_KEY @"GET_YOUR_OWN"
+#define API_KEY @"CCQ7NJ6VUAXLXMA1T"
 #define API_HOST @"developer.echonest.com"
 
 @interface echoprintViewController : UIViewController <MPMediaPickerControllerDelegate> {
@@ -24,13 +24,18 @@
 	IBOutlet UIButton* recordButton;
 	IBOutlet UILabel* statusLine;
 	MicrophoneInput* recorder;
-
+    NSTimer *repeatingTimer;
 }
+
+@property (assign) NSTimer *repeatingTimer;
+@property (nonatomic) int counter;
+
+- (void)getSong:(const char*)fpCode;
+- (NSDictionary *)userInfo;
 
 - (IBAction)pickSong:(id)sender;
 - (IBAction)startMicrophone:(id)sender;
 - (IBAction)retestExistingAudio:(id)sender;
-- (void) getSong: (const char*) fpCode;
 
 @end
 

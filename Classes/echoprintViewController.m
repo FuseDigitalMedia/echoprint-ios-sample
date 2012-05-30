@@ -12,6 +12,8 @@ extern const char * GetPCMFromFile(char * filename);
 
 
 @implementation echoprintViewController
+@synthesize repeatingTimer;
+@synthesize counter;
 
 - (IBAction)pickSong:(id)sender {
 	NSLog(@"Pick song");
@@ -32,12 +34,28 @@ extern const char * GetPCMFromFile(char * filename);
     [self getSong:fpCode];
 }
 
+- (NSDictionary *)userInfo {
+    return [NSDictionary dictionaryWithObject:[NSDate date] forKey:@"StartDate"];
+}
+
+- (void)timerFireMethod:(NSTimer*)theTimer {
+    self.counter++;
+    NSLog(@"Timer count:%d", self.counter);
+    [self analyzeFile];
+}
+
+- (void)stopRepeatingTimer {
+    [self.repeatingTimer invalidate];
+    self.repeatingTimer = nil;
+}
+
 - (IBAction) startMicrophone:(id)sender {
 	if(recording) {
 		recording = NO;
 		[recorder stopRecording];
 		[recordButton setTitle:@"Record" forState:UIControlStateNormal];
 		[self analyzeFile];
+        [self stopRepeatingTimer];
 	} else {
 		[statusLine setText:@"recording..."];
 		recording = YES;
@@ -45,9 +63,13 @@ extern const char * GetPCMFromFile(char * filename);
 		[recorder startRecording];
 		[statusLine setNeedsDisplay];
 		[self.view setNeedsDisplay];
+        self.counter = 0;
+        NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:5.0 
+                           target:self selector:@selector(timerFireMethod:) 
+                           userInfo:[self userInfo] repeats:YES];
+        self.repeatingTimer = timer;
 	}
 	NSLog(@"what");
-
 }
 
 - (IBAction)retestExistingAudio:(id)sender {
@@ -81,7 +103,6 @@ extern const char * GetPCMFromFile(char * filename);
 		
 	}
 }
-
 
 - (void) getSong: (const char*) fpCode {
 	NSLog(@"Done %s", fpCode);
