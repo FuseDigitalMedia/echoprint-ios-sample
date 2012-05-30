@@ -88,10 +88,6 @@ extern const char * GetPCMFromFile(char * filename);
     [self analyzeFile];
 }
 
-- (IBAction)playExistingAudio:(id)sender {
-    
-}
-
 - (void)mediaPicker:(MPMediaPickerController *)mediaPicker 
   didPickMediaItems:(MPMediaItemCollection *)mediaItemCollection {
 	[self dismissModalViewControllerAnimated:YES];
