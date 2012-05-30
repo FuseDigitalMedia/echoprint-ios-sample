@@ -14,6 +14,9 @@ extern const char * GetPCMFromFile(char * filename);
 @implementation echoprintViewController
 @synthesize repeatingTimer;
 @synthesize counter;
+@synthesize samplesLabel;
+@synthesize samplesSlider;
+@synthesize timerSwitch;
 
 - (IBAction)pickSong:(id)sender {
 	NSLog(@"Pick song");
@@ -43,16 +46,18 @@ extern const char * GetPCMFromFile(char * filename);
     NSLog(@"Timer count:%d", self.counter);
     [self performSelectorInBackground:@selector(analyzeFile) withObject:nil];
     
-    if (counter == 6) {
+    if (counter == samples) {
         [self stopRecordingSound];
     }
 }
 
 - (void)stopRepeatingTimer {
-    [self.repeatingTimer invalidate];
-    self.repeatingTimer = nil;
+    if (self.repeatingTimer != nil) {
+        [self.repeatingTimer invalidate];
+        self.repeatingTimer = nil;
+    }
 }
-
+    
 - (void)stopRecordingSound {
     recording = NO;
     [recorder stopRecording];
@@ -68,10 +73,15 @@ extern const char * GetPCMFromFile(char * filename);
     [statusLine setNeedsDisplay];
     [self.view setNeedsDisplay];
     self.counter = 0;
-    NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:5.0 
-                                                      target:self selector:@selector(timerFireMethod:) 
-                                                    userInfo:[self userInfo] repeats:YES];
-    self.repeatingTimer = timer;
+    
+    if (timerSwitch.on) {
+        NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:5.0 
+                             target:self selector:@selector(timerFireMethod:) 
+                             userInfo:[self userInfo] repeats:YES];
+        self.repeatingTimer = timer;
+    } else {
+        [self stopRepeatingTimer];
+    }
 }
 
 - (IBAction) startMicrophone:(id)sender {
@@ -86,6 +96,14 @@ extern const char * GetPCMFromFile(char * filename);
 
 - (IBAction)retestExistingAudio:(id)sender {
     [self analyzeFile];
+}
+
+- (IBAction)toggleTimer:(id)sender {
+}
+
+- (IBAction)setNumberOfSamples:(id)sender {
+    samples = ((UISlider *)sender).value;
+    self.samplesLabel.text = [[NSString alloc] initWithFormat:@"%d Samples:", samples];
 }
 
 - (void)mediaPicker:(MPMediaPickerController *)mediaPicker 
@@ -118,7 +136,7 @@ extern const char * GetPCMFromFile(char * filename);
 
 - (void) getSong: (const char*) fpCode {
 	NSLog(@"Done %s", fpCode);
-	NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/api/v4/song/identify?api_key=%@&version=4.11&code=%s", API_HOST, API_KEY, fpCode]];
+	NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/api/v4/song/identify?api_key=%@&version=4.12&code=%s", API_HOST, API_KEY, fpCode]];
 	ASIHTTPRequest * request = [ASIHTTPRequest requestWithURL:url];
 	[request setAllowCompressedResponse:NO];
 	[request startSynchronous];
@@ -170,6 +188,7 @@ extern const char * GetPCMFromFile(char * filename);
     [super viewDidLoad];
 	recorder = [[MicrophoneInput alloc] init];
 	recording = NO;
+    [samplesSlider setValue:6];
 }
 
 
@@ -189,12 +208,18 @@ extern const char * GetPCMFromFile(char * filename);
 }
 
 - (void)viewDidUnload {
+    [self setTimerSwitch:nil];
+    [self setSamplesSlider:nil];
+    [self setSamplesLabel:nil];
 	// Release any retained subviews of the main view.
 	// e.g. self.myOutlet = nil;
 }
 
 
 - (void)dealloc {
+    [samplesLabel release];
+    [samplesSlider release];
+    [timerSwitch release];
     [super dealloc];
 }
 

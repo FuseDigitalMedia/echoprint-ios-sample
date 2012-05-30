@@ -25,10 +25,14 @@
 	IBOutlet UILabel* statusLine;
 	MicrophoneInput* recorder;
     NSTimer *repeatingTimer;
+    int samples;
 }
 
 @property (assign) NSTimer *repeatingTimer;
 @property (nonatomic) int counter;
+@property (retain, nonatomic) IBOutlet UILabel *samplesLabel;
+@property (retain, nonatomic) IBOutlet UISlider *samplesSlider;
+@property (retain, nonatomic) IBOutlet UISwitch *timerSwitch;
 
 - (void)getSong:(const char*)fpCode;
 - (NSDictionary *)userInfo;
@@ -36,6 +40,8 @@
 - (IBAction)pickSong:(id)sender;
 - (IBAction)startMicrophone:(id)sender;
 - (IBAction)retestExistingAudio:(id)sender;
+- (IBAction)toggleTimer:(id)sender;
+- (IBAction)setNumberOfSamples:(id)sender;
 
 @end
 
