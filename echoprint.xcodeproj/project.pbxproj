@@ -23,6 +23,7 @@
 		2BEE72C6156FE59E00454A91 /* ASINetworkQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 2BEE72BC156FE59E00454A91 /* ASINetworkQueue.m */; };
 		2BEE72C7156FE59E00454A91 /* Reachability.m in Sources */ = {isa = PBXBuildFile; fileRef = 2BEE72C0156FE59E00454A91 /* Reachability.m */; };
 		2BEE72CB156FE71C00454A91 /* libechoprint-codegen-ios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9AAF51B113B2559100099790 /* libechoprint-codegen-ios.a */; };
+		2BFCC36B15829D7A00373A37 /* CompressCodeData.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2BFCC36A15829D7A00373A37 /* CompressCodeData.cpp */; };
 		9AC8897113A69822002C92D4 /* Codegen_wrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9AC8896E13A69821002C92D4 /* Codegen_wrapper.cpp */; };
 		9AC8897213A69822002C92D4 /* GetPCMFromFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9AC8897013A69822002C92D4 /* GetPCMFromFile.cpp */; };
 		9AC8897513A69840002C92D4 /* MicrophoneInput.m in Sources */ = {isa = PBXBuildFile; fileRef = 9AC8897413A69840002C92D4 /* MicrophoneInput.m */; };
@@ -72,6 +73,8 @@
 		2BEE72BD156FE59E00454A91 /* ASIProgressDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASIProgressDelegate.h; sourceTree = "<group>"; };
 		2BEE72BF156FE59E00454A91 /* Reachability.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Reachability.h; sourceTree = "<group>"; };
 		2BEE72C0156FE59E00454A91 /* Reachability.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Reachability.m; sourceTree = "<group>"; };
+		2BFCC36A15829D7A00373A37 /* CompressCodeData.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CompressCodeData.cpp; sourceTree = "<group>"; };
+		2BFCC36D15829D8E00373A37 /* CompressCodeData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CompressCodeData.h; sourceTree = "<group>"; };
 		32CA4F630368D1EE00C91783 /* echoprint_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = echoprint_Prefix.pch; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* echoprint-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "echoprint-Info.plist"; plistStructureDefinitionIdentifier = "com.apple.xcode.plist.structure-definition.iphone.info-plist"; sourceTree = "<group>"; };
 		9AAF51B113B2559100099790 /* libechoprint-codegen-ios.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = "libechoprint-codegen-ios.a"; sourceTree = SOURCE_ROOT; };
@@ -179,6 +182,8 @@
 				9AC8897013A69822002C92D4 /* GetPCMFromFile.cpp */,
 				32CA4F630368D1EE00C91783 /* echoprint_Prefix.pch */,
 				29B97316FDCFA39411CA2CEA /* main.m */,
+				2BFCC36D15829D8E00373A37 /* CompressCodeData.h */,
+				2BFCC36A15829D7A00373A37 /* CompressCodeData.cpp */,
 			);
 			name = "Other Sources";
 			sourceTree = "<group>";
@@ -349,6 +354,7 @@
 				2BEE72C5156FE59E00454A91 /* ASIInputStream.m in Sources */,
 				2BEE72C6156FE59E00454A91 /* ASINetworkQueue.m in Sources */,
 				2BEE72C7156FE59E00454A91 /* Reachability.m in Sources */,
+				2BFCC36B15829D7A00373A37 /* CompressCodeData.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

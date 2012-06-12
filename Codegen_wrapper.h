@@ -6,4 +6,6 @@
  *
  */
 
-const char* codegen_wrapper(const float*pcm, int numSamples);
+#include <string>
+
+const char* codegen_wrapper(const float*pcm, int numSamples, int startOffset);

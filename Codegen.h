@@ -24,6 +24,8 @@ public:
     string getCodeString(){return _CodeString;}
     int getNumCodes(){return _NumCodes;}
     float getVersion() { return VERSION; }
+    static string compress(const string& s);
+    
 private:
 
     string _CodeString;

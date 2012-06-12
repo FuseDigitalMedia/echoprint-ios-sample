@@ -19,6 +19,10 @@
 #define API_KEY @"CCQ7NJ6VUAXLXMA1T"
 #define API_HOST @"developer.echonest.com"
 
+#define NUM_SECS_TO_ANALIZE 8
+#define FILE_ANALIZE_INTERVAL 4
+#define ONE_SEC_OF_AUDIO 11025
+
 @interface echoprintViewController : UIViewController <MPMediaPickerControllerDelegate> {
 	BOOL recording;
 	IBOutlet UIButton* recordButton;
@@ -26,6 +30,10 @@
 	MicrophoneInput* recorder;
     NSTimer *repeatingTimer;
     int samples;
+@private
+    int fileOffsetPtr;
+    NSMutableString *timeCodes;
+    NSMutableString *hashCodes;
 }
 
 @property (assign) NSTimer *repeatingTimer;
@@ -34,7 +42,7 @@
 @property (retain, nonatomic) IBOutlet UISlider *samplesSlider;
 @property (retain, nonatomic) IBOutlet UISwitch *timerSwitch;
 
-- (void)getSong:(const char*)fpCode;
+- (void)getSong:(NSString *)coded;
 - (NSDictionary *)userInfo;
 
 - (IBAction)pickSong:(id)sender;

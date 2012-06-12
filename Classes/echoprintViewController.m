@@ -7,9 +7,10 @@
 //
 
 #import "echoprintViewController.h"
-extern const char * GetPCMFromFile(char * filename);
+#import <string.h>
 
-
+extern const char * GetPCMFromFile(char * filename, UInt32 numSeconds, UInt32 startOffset);
+extern StringPtr * CompressCodeData(const char * strToCompress);
 
 @implementation echoprintViewController
 @synthesize repeatingTimer;
@@ -26,15 +27,96 @@ extern const char * GetPCMFromFile(char * filename);
 	
 }
 
-- (void)analyzeFile {
+- (void)analyzeFile
+{
+    int endOffset = ONE_SEC_OF_AUDIO * self.counter;
+    int startOffset = endOffset - (ONE_SEC_OF_AUDIO * NUM_SECS_TO_ANALIZE);
+    int numSeconds = NUM_SECS_TO_ANALIZE;
+    
+    if (startOffset < 0) {
+        return;
+    }
+    
+    NSLog(@"starting:%d, ending:%d", startOffset, endOffset);
+    
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString *documentsDirectory = [paths objectAtIndex:0];
-    NSString *filePath =[documentsDirectory stringByAppendingPathComponent:@"output.caf"];
+    NSString *filePath = [documentsDirectory stringByAppendingPathComponent:@"output.caf"];
+    
     [statusLine setText:@"analysing..."];
     [statusLine setNeedsDisplay];
     [self.view setNeedsDisplay];
-    const char * fpCode = GetPCMFromFile((char*) [filePath cStringUsingEncoding:NSASCIIStringEncoding]);
-    [self getSong:fpCode];
+    
+    const char * fpCode = GetPCMFromFile((char*) [filePath cStringUsingEncoding:NSASCIIStringEncoding], 
+                                         (unsigned int)numSeconds, 
+                                         (unsigned int)startOffset);
+    
+    NSString *nsFpCode = [NSString stringWithFormat:@"%s", fpCode];
+    int midPoint = nsFpCode.length / 2;
+    if (nsFpCode.length > 2 && nsFpCode.length % 2 == 0) {
+        
+        NSString *timeStr = [nsFpCode substringWithRange:NSMakeRange(0, midPoint)];
+        NSString *hashStr = [nsFpCode substringWithRange:NSMakeRange(midPoint, midPoint)];
+        NSRange range;
+        
+        int cap = (11025 * ((endOffset/ONE_SEC_OF_AUDIO) - 4)) / 256;
+        unsigned int tc;
+        
+        for (int i = 0, len = timeStr.length / 5; i < len; i += 5)
+        {
+            range = NSMakeRange(i, 5);
+            [[NSScanner scannerWithString:[timeStr substringWithRange:range]] scanHexInt:&tc];
+            
+            if (tc <= cap) 
+            {
+                [timeCodes appendString:[timeStr substringWithRange:range]];
+                [hashCodes appendString:[hashStr substringWithRange:range]];
+            } else {
+                NSLog(@"tc = %d > cap = %d", tc, cap);
+            }
+        }
+        
+        //NSLog(@"timeCodes = %@", timeCodes);
+        //NSLog(@"hashCodes = %@", hashCodes);
+    } else {
+        NSLog(@"Error with fpCode. Length is %d", nsFpCode.length);
+    }
+    
+    @synchronized(self) {
+        const char *data = [[NSString stringWithFormat:@"%@%@", timeCodes, hashCodes] cStringUsingEncoding:NSASCIIStringEncoding];
+        //NSLog(@"Data = %s", data);
+        
+        StringPtr *coded = CompressCodeData(data);    
+        NSLog(@"coded = %@", coded);
+
+        NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/api/v4/song/identify?api_key=%@&version=4.12&code=%@", API_HOST, API_KEY, coded]];
+        NSLog(@"URL = %@", url.description);
+        
+        ASIHTTPRequest * request = [ASIHTTPRequest requestWithURL:url];
+        [request setAllowCompressedResponse:NO];
+        [request startSynchronous];
+        
+        NSError *error = [request error];
+        if (!error) {
+            NSString *response = [[NSString alloc] initWithData:[request responseData] encoding:NSUTF8StringEncoding];		
+            NSDictionary *dictionary = [response JSONValue];
+            NSLog(@"%@", dictionary);
+            NSArray *songList = [[dictionary objectForKey:@"response"] objectForKey:@"songs"];
+            if([songList count]>0) {
+                NSString * song_title = [[songList objectAtIndex:0] objectForKey:@"title"];
+                NSString * artist_name = [[songList objectAtIndex:0] objectForKey:@"artist_name"];
+                [statusLine setText:[NSString stringWithFormat:@"%@ - %@", artist_name, song_title]];
+            } else {
+                [statusLine setText:[[NSString alloc] initWithFormat:@"No match for try %d", self.counter]];
+            }
+        } else {
+            [statusLine setText:@"some error"];
+            NSLog(@"error: %@", error);
+        }
+    }
+
+	[statusLine setNeedsDisplay];
+	[self.view setNeedsDisplay];
 }
 
 - (NSDictionary *)userInfo {
@@ -44,10 +126,10 @@ extern const char * GetPCMFromFile(char * filename);
 - (void)timerFireMethod:(NSTimer*)theTimer {
     self.counter++;
     NSLog(@"Timer count:%d", self.counter);
-    [self performSelectorInBackground:@selector(analyzeFile) withObject:nil];
     
-    if (counter == samples) {
-        [self stopRecordingSound];
+    if (self.counter % samples == 0) {
+        //[self analyzeFile];
+        [self performSelectorInBackground:@selector(analyzeFile) withObject:nil];
     }
 }
 
@@ -66,6 +148,10 @@ extern const char * GetPCMFromFile(char * filename);
 }
 
 - (void)startRecordingSound {
+    fileOffsetPtr = 0;
+    timeCodes = [[NSMutableString alloc] init];
+    hashCodes = [[NSMutableString alloc] init];
+    
     [statusLine setText:@"recording..."];
     recording = YES;
     [recordButton setTitle:@"Stop" forState:UIControlStateNormal];
@@ -75,8 +161,8 @@ extern const char * GetPCMFromFile(char * filename);
     self.counter = 0;
     
     if (timerSwitch.on) {
-        NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:5.0 
-                             target:self selector:@selector(timerFireMethod:) 
+        NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:1.0
+                             target:self selector:@selector(timerFireMethod:)
                              userInfo:[self userInfo] repeats:YES];
         self.repeatingTimer = timer;
     } else {
@@ -108,6 +194,7 @@ extern const char * GetPCMFromFile(char * filename);
 
 - (void)mediaPicker:(MPMediaPickerController *)mediaPicker 
   didPickMediaItems:(MPMediaItemCollection *)mediaItemCollection {
+    /*
 	[self dismissModalViewControllerAnimated:YES];
 	for (MPMediaItem* item in mediaItemCollection.items) {
 		NSString* title = [item valueForProperty:MPMediaItemPropertyTitle];
@@ -132,34 +219,10 @@ extern const char * GetPCMFromFile(char * filename);
 		}];
 		
 	}
+     */
 }
 
-- (void) getSong: (const char*) fpCode {
-	NSLog(@"Done %s", fpCode);
-	NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/api/v4/song/identify?api_key=%@&version=4.12&code=%s", API_HOST, API_KEY, fpCode]];
-	ASIHTTPRequest * request = [ASIHTTPRequest requestWithURL:url];
-	[request setAllowCompressedResponse:NO];
-	[request startSynchronous];
-	NSError *error = [request error];
-	if (!error) {
-		NSString *response = [[NSString alloc] initWithData:[request responseData] encoding:NSUTF8StringEncoding];		
-		NSDictionary *dictionary = [response JSONValue];
-		NSLog(@"%@", dictionary);
-		NSArray *songList = [[dictionary objectForKey:@"response"] objectForKey:@"songs"];
-		if([songList count]>0) {
-			NSString * song_title = [[songList objectAtIndex:0] objectForKey:@"title"];
-			NSString * artist_name = [[songList objectAtIndex:0] objectForKey:@"artist_name"];
-			[statusLine setText:[NSString stringWithFormat:@"%@ - %@", artist_name, song_title]];
-		} else {
-			[statusLine setText:[[NSString alloc] initWithFormat:@"No match for try %d", self.counter]];
-		}
-	} else {
-		[statusLine setText:@"some error"];
-		NSLog(@"error: %@", error);
-	}
-	[statusLine setNeedsDisplay];
-	[self.view setNeedsDisplay];
-}
+
 
 - (void)mediaPickerDidCancel:(MPMediaPickerController *)mediaPicker {
 	[self dismissModalViewControllerAnimated:YES];
@@ -188,7 +251,7 @@ extern const char * GetPCMFromFile(char * filename);
     [super viewDidLoad];
 	recorder = [[MicrophoneInput alloc] init];
 	recording = NO;
-    samples = 6;
+    samples = 4;
     [samplesSlider setValue:samples];
 }
 

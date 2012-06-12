@@ -9,10 +9,9 @@
 #include "Codegen.h"
 #include <string>
 
-const char* codegen_wrapper(const float*pcm, int numSamples) {
+const char* codegen_wrapper(const float*pcm, int numSamples, int offset) {
 	//Codegen*c = new Codegen(pcm, (uint)numSamples, 0, false);
-	Codegen*c = new Codegen(pcm, (unsigned int)numSamples, 0);
+	Codegen*c = new Codegen(pcm, (unsigned int)numSamples, (unsigned int)offset);
 	string s = c->getCodeString();
 	return s.c_str();
 }
-

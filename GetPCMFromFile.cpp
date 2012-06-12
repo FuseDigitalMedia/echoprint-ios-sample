@@ -13,7 +13,7 @@ extern "C" {
 
 extern void NSLog(CFStringRef format, ...); 
 
-const char * GetPCMFromFile(char * filename) {
+const char * GetPCMFromFile(char * filename, UInt32 numSeconds, UInt32 startOffset) {
 	CFURLRef audioFileURL = CFURLCreateFromFileSystemRepresentation(NULL,(const UInt8*)filename, strlen(filename), false);
 	ExtAudioFileRef outExtAudioFile;
 	int err = ExtAudioFileOpenURL(audioFileURL, &outExtAudioFile);
@@ -21,7 +21,6 @@ const char * GetPCMFromFile(char * filename) {
 		NSLog(CFSTR("open failed")); 
 	}
 
-	
 	CAStreamBasicDescription clientFormat;
 	clientFormat.mSampleRate = 11025;
 	clientFormat.mFormatID = kAudioFormatLinearPCM;
@@ -42,6 +41,7 @@ const char * GetPCMFromFile(char * filename) {
 	if(bigBuf == NULL) {
 		NSLog(CFSTR("Error mallocing bigbuf"));
 	}
+    
 	int totalFrames = 0;
 	while (1) {
 		AudioBufferList fillBufList;
@@ -60,7 +60,7 @@ const char * GetPCMFromFile(char * filename) {
 			break;
 		}
 		if (!numFrames)
-			break;
+			break; 
 		
 		float mono_version[numFrames];
 		float* float_buf = (float*) fillBufList.mBuffers[0].mData;
@@ -78,14 +78,17 @@ const char * GetPCMFromFile(char * filename) {
 			totalFrames = totalFrames + numFrames;
 		}
 	}
-
+    
+    int numSamples = clientFormat.BytesToFrames(numSeconds * 11025 * 4 * 2);
+    //int startSecs = clientFormat.BytesToFrames((startOffset/11025) 4 * 2);
+    
 	const char * what = "";
-	if(totalFrames > 11025) {
-		NSLog(CFSTR("Doing codegen on %d samples..."), totalFrames);
-		what = codegen_wrapper(bigBuf,	totalFrames);
+	//if(totalFrames > 11025) {
+		NSLog(CFSTR("Doing codegen on %d samples... at offset %d"), numSamples, (startOffset/11025));
+		what = codegen_wrapper(bigBuf, numSamples, (startOffset/11025));
 		NSLog(CFSTR("Done with codegen"));
 
-	}
+	//}
 	free(bigBuf);
 
 	return what;
