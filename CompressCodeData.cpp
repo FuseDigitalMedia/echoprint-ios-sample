@@ -15,12 +15,11 @@ extern "C" {
     
     extern void NSLog(CFStringRef format, ...); 
     
-    string CompressCodeData(const char * strToCompress) {
+    char * CompressCodeData(const char * strToCompress) {
         const string s(strToCompress);
-        //const char * cmp = Codegen::compress(s).c_str();
-        string cmp = Codegen::compress(s);
-        //NSLog(CFSTR("s = %s"), cmp);
-        return cmp;
+        char *r = strdup(Codegen::compress(s).c_str());
+        //NSLog(CFSTR("In Compress %s"), r);
+        return r;
     }
 
 }

@@ -10,7 +10,7 @@
 #import <string.h>
 
 extern const char * GetPCMFromFile(char * filename, UInt32 numSeconds, UInt32 startOffset);
-extern StringPtr * CompressCodeData(const char * strToCompress);
+extern char * CompressCodeData(const char * strToCompress);
 
 @implementation echoprintViewController
 @synthesize repeatingTimer;
@@ -24,72 +24,71 @@ extern StringPtr * CompressCodeData(const char * strToCompress);
 	MPMediaPickerController* mediaPicker = [[[MPMediaPickerController alloc] initWithMediaTypes:MPMediaTypeMusic] autorelease];
 	mediaPicker.delegate = self;
 	[self presentModalViewController:mediaPicker animated:YES];
-	
 }
 
 - (void)analyzeFile
 {
-    int endOffset = ONE_SEC_OF_AUDIO * self.counter;
-    int startOffset = endOffset - (ONE_SEC_OF_AUDIO * NUM_SECS_TO_ANALIZE);
-    int numSeconds = NUM_SECS_TO_ANALIZE;
-    
-    if (startOffset < 0) {
-        return;
-    }
-    
-    NSLog(@"starting:%d, ending:%d", startOffset, endOffset);
-    
-    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSString *documentsDirectory = [paths objectAtIndex:0];
-    NSString *filePath = [documentsDirectory stringByAppendingPathComponent:@"output.caf"];
-    
-    [statusLine setText:@"analysing..."];
-    [statusLine setNeedsDisplay];
-    [self.view setNeedsDisplay];
-    
-    const char * fpCode = GetPCMFromFile((char*) [filePath cStringUsingEncoding:NSASCIIStringEncoding], 
-                                         (unsigned int)numSeconds, 
-                                         (unsigned int)startOffset);
-    
-    NSString *nsFpCode = [NSString stringWithFormat:@"%s", fpCode];
-    int midPoint = nsFpCode.length / 2;
-    if (nsFpCode.length > 2 && nsFpCode.length % 2 == 0) {
+    @synchronized(self) {
+        int endOffset = ONE_SEC_OF_AUDIO * self.counter;
+        int startOffset = endOffset - (ONE_SEC_OF_AUDIO * NUM_SECS_TO_ANALIZE);
+        int numSeconds = NUM_SECS_TO_ANALIZE;
         
-        NSString *timeStr = [nsFpCode substringWithRange:NSMakeRange(0, midPoint)];
-        NSString *hashStr = [nsFpCode substringWithRange:NSMakeRange(midPoint, midPoint)];
-        NSRange range;
-        
-        int cap = (11025 * ((endOffset/ONE_SEC_OF_AUDIO) - 4)) / 256;
-        unsigned int tc;
-        
-        for (int i = 0, len = timeStr.length / 5; i < len; i += 5)
-        {
-            range = NSMakeRange(i, 5);
-            [[NSScanner scannerWithString:[timeStr substringWithRange:range]] scanHexInt:&tc];
-            
-            if (tc <= cap) 
-            {
-                [timeCodes appendString:[timeStr substringWithRange:range]];
-                [hashCodes appendString:[hashStr substringWithRange:range]];
-            } else {
-                NSLog(@"tc = %d > cap = %d", tc, cap);
-            }
+        if (startOffset < 0) {
+            return;
         }
         
-        //NSLog(@"timeCodes = %@", timeCodes);
-        //NSLog(@"hashCodes = %@", hashCodes);
-    } else {
-        NSLog(@"Error with fpCode. Length is %d", nsFpCode.length);
-    }
-    
-    @synchronized(self) {
-        const char *data = [[NSString stringWithFormat:@"%@%@", timeCodes, hashCodes] cStringUsingEncoding:NSASCIIStringEncoding];
-        //NSLog(@"Data = %s", data);
+        NSLog(@"starting:%d, ending:%d", startOffset, endOffset);
         
-        StringPtr *coded = CompressCodeData(data);    
-        NSLog(@"coded = %@", coded);
-
-        NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/api/v4/song/identify?api_key=%@&version=4.12&code=%@", API_HOST, API_KEY, coded]];
+        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+        NSString *documentsDirectory = [paths objectAtIndex:0];
+        NSString *filePath = [documentsDirectory stringByAppendingPathComponent:@"output.caf"];
+        
+        [statusLine setText:@"analysing..."];
+        [statusLine setNeedsDisplay];
+        [self.view setNeedsDisplay];
+        
+        const char * fpCode = GetPCMFromFile((char*) [filePath cStringUsingEncoding:NSASCIIStringEncoding], 
+                                             (unsigned int)numSeconds, 
+                                             (unsigned int)startOffset);
+        
+        NSString *nsFpCode = [NSString stringWithFormat:@"%s", fpCode];
+        int midPoint = nsFpCode.length / 2;
+        if (nsFpCode.length > 2 && nsFpCode.length % 2 == 0) {
+            
+            NSString *timeStr = [nsFpCode substringWithRange:NSMakeRange(0, midPoint)];
+            NSString *hashStr = [nsFpCode substringWithRange:NSMakeRange(midPoint, midPoint)];
+            NSRange range;
+            
+            int cap = (11025 * ((endOffset/ONE_SEC_OF_AUDIO) - 4)) / 256;
+            unsigned int tc;
+            
+            for (int i = 0, len = timeStr.length / 5; i < len; i += 5)
+            {
+                range = NSMakeRange(i, 5);
+                [[NSScanner scannerWithString:[timeStr substringWithRange:range]] scanHexInt:&tc];
+                
+                if (tc <= cap) 
+                {
+                    [timeCodes appendString:[timeStr substringWithRange:range]];
+                    [hashCodes appendString:[hashStr substringWithRange:range]];
+                } else {
+                    //NSLog(@"tc = %d > cap = %d", tc, cap);
+                }
+            }
+            
+            //NSLog(@"timeCodes = %@", timeCodes);
+            //NSLog(@"hashCodes = %@", hashCodes);
+        } else {
+            NSLog(@"Error with fpCode. Length is %d", nsFpCode.length);
+        }
+        
+        const char *data = [[NSString stringWithFormat:@"%@%@", timeCodes, hashCodes] cStringUsingEncoding:NSASCIIStringEncoding];
+        
+        char *compressed = CompressCodeData(data);
+        NSString *casted = [NSString stringWithCString:compressed encoding:NSASCIIStringEncoding];
+        free(compressed);
+        
+        NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/api/v4/song/identify?api_key=%@&version=4.12&code=%@", API_HOST, API_KEY, casted]];
         NSLog(@"URL = %@", url.description);
         
         ASIHTTPRequest * request = [ASIHTTPRequest requestWithURL:url];
@@ -113,10 +112,11 @@ extern StringPtr * CompressCodeData(const char * strToCompress);
             [statusLine setText:@"some error"];
             NSLog(@"error: %@", error);
         }
+        
+        [statusLine setNeedsDisplay];
+        [self.view setNeedsDisplay];
+        
     }
-
-	[statusLine setNeedsDisplay];
-	[self.view setNeedsDisplay];
 }
 
 - (NSDictionary *)userInfo {

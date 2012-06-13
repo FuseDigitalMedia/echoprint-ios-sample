@@ -42,7 +42,6 @@
 @property (retain, nonatomic) IBOutlet UISlider *samplesSlider;
 @property (retain, nonatomic) IBOutlet UISwitch *timerSwitch;
 
-- (void)getSong:(NSString *)coded;
 - (NSDictionary *)userInfo;
 
 - (IBAction)pickSong:(id)sender;
