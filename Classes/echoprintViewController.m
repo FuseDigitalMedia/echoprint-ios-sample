@@ -29,8 +29,8 @@ extern char * CompressCodeData(const char * strToCompress);
 - (void)analyzeFile
 {
     @synchronized(self) {
-        int endOffset = ONE_SEC_OF_AUDIO * self.counter;
-        int startOffset = endOffset - (ONE_SEC_OF_AUDIO * NUM_SECS_TO_ANALIZE);
+        int endOffset = self.counter;
+        int startOffset = endOffset - NUM_SECS_TO_ANALIZE;
         int numSeconds = NUM_SECS_TO_ANALIZE;
         
         if (startOffset < 0) {
@@ -52,6 +52,7 @@ extern char * CompressCodeData(const char * strToCompress);
                                              (unsigned int)startOffset);
         
         NSString *nsFpCode = [NSString stringWithFormat:@"%s", fpCode];
+        
         int midPoint = nsFpCode.length / 2;
         if (nsFpCode.length > 2 && nsFpCode.length % 2 == 0) {
             
@@ -66,39 +67,59 @@ extern char * CompressCodeData(const char * strToCompress);
         
         const char *data = [[NSString stringWithFormat:@"%@%@", timeCodes, hashCodes] cStringUsingEncoding:NSASCIIStringEncoding];
         
-        char *compressed = CompressCodeData(data);
-        NSString *casted = [NSString stringWithCString:compressed encoding:NSASCIIStringEncoding];
-        free(compressed);
-        
-        NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/api/v4/song/identify?api_key=%@&version=4.12&code=%@", API_HOST, API_KEY, casted]];
-        NSLog(@"URL = %@", url.description);
-        
-        ASIHTTPRequest * request = [ASIHTTPRequest requestWithURL:url];
-        [request setAllowCompressedResponse:NO];
-        [request startSynchronous];
-        
-        NSError *error = [request error];
-        if (!error) {
-            NSString *response = [[NSString alloc] initWithData:[request responseData] encoding:NSUTF8StringEncoding];		
-            NSDictionary *dictionary = [response JSONValue];
-            NSLog(@"%@", dictionary);
-            NSArray *songList = [[dictionary objectForKey:@"response"] objectForKey:@"songs"];
-            if([songList count]>0) {
-                NSString * song_title = [[songList objectAtIndex:0] objectForKey:@"title"];
-                NSString * artist_name = [[songList objectAtIndex:0] objectForKey:@"artist_name"];
-                [statusLine setText:[NSString stringWithFormat:@"%@ - %@", artist_name, song_title]];
-            } else {
-                [statusLine setText:[[NSString alloc] initWithFormat:@"No match for try %d", self.counter]];
-            }
-        } else {
-            [statusLine setText:@"some error"];
-            NSLog(@"error: %@", error);
-        }
-        
-        [statusLine setNeedsDisplay];
-        [self.view setNeedsDisplay];
-        
+        [self getSong:data];
     }
+}
+
+- (void)analyzeWholeFile
+{
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentsDirectory = [paths objectAtIndex:0];
+    NSString *filePath = [documentsDirectory stringByAppendingPathComponent:@"output.caf"];
+    
+    [statusLine setText:@"analysing..."];
+    [statusLine setNeedsDisplay];
+    [self.view setNeedsDisplay];
+    
+    const char * fpCode = GetPCMFromFile((char*) [filePath cStringUsingEncoding:NSASCIIStringEncoding], 0, 0);
+    const char *data = [[NSString stringWithFormat:@"%s", fpCode] cStringUsingEncoding:NSASCIIStringEncoding];
+    
+    [self getSong:data];
+}
+
+- (void) getSong:(const char *)data
+{
+    char *compressed = CompressCodeData(data);
+    NSString *code = [NSString stringWithCString:compressed encoding:NSASCIIStringEncoding];
+    free(compressed);
+    
+    NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/api/v4/song/identify?api_key=%@&version=4.12&code=%@", API_HOST, API_KEY, code]];
+    NSLog(@"URL = %@", url.description);
+    
+    ASIHTTPRequest * request = [ASIHTTPRequest requestWithURL:url];
+    [request setAllowCompressedResponse:NO];
+    [request startSynchronous];
+    
+    NSError *error = [request error];
+    if (!error) {
+        NSString *response = [[NSString alloc] initWithData:[request responseData] encoding:NSUTF8StringEncoding];		
+        NSDictionary *dictionary = [response JSONValue];
+        NSLog(@"%@", dictionary);
+        NSArray *songList = [[dictionary objectForKey:@"response"] objectForKey:@"songs"];
+        if([songList count]>0) {
+            NSString * song_title = [[songList objectAtIndex:0] objectForKey:@"title"];
+            NSString * artist_name = [[songList objectAtIndex:0] objectForKey:@"artist_name"];
+            [statusLine setText:[NSString stringWithFormat:@"%@ - %@", artist_name, song_title]];
+        } else {
+            [statusLine setText:[[NSString alloc] initWithFormat:@"No match for try %d", self.counter]];
+        }
+    } else {
+        [statusLine setText:@"some error"];
+        NSLog(@"error: %@", error);
+    }
+    
+    [statusLine setNeedsDisplay];
+    [self.view setNeedsDisplay];
 }
 
 - (NSDictionary *)userInfo {
@@ -163,7 +184,7 @@ extern char * CompressCodeData(const char * strToCompress);
 }
 
 - (IBAction)retestExistingAudio:(id)sender {
-    [self analyzeFile];
+    [self analyzeWholeFile];
 }
 
 - (IBAction)toggleTimer:(id)sender {

@@ -42,6 +42,13 @@ const char * GetPCMFromFile(char * filename, UInt32 numSeconds, UInt32 startOffs
 		NSLog(CFSTR("Error mallocing bigbuf"));
 	}
     
+    SInt64 outFrameOffset;
+    
+    err = ExtAudioFileSeek(outExtAudioFile, (startOffset * clientFormat.mSampleRate));
+    if (err) {
+        NSLog(CFSTR("err on seek %d"), err);
+    }
+    
 	int totalFrames = 0;
 	while (1) {
 		AudioBufferList fillBufList;
@@ -53,6 +60,10 @@ const char * GetPCMFromFile(char * filename, UInt32 numSeconds, UInt32 startOffs
 		fillBufList.mBuffers[0].mNumberChannels = clientFormat.NumberChannels();
 		fillBufList.mBuffers[0].mDataByteSize = bufferByteSize;
 		fillBufList.mBuffers[0].mData = srcBuffer;
+        
+        ExtAudioFileTell(outExtAudioFile, &outFrameOffset);
+        NSLog(CFSTR("head status %i"), outFrameOffset);
+        
 		err = ExtAudioFileRead(outExtAudioFile, &numFrames, &fillBufList);	
 		if (err) { 
 			NSLog(CFSTR("err on read %d"), err);
@@ -79,18 +90,20 @@ const char * GetPCMFromFile(char * filename, UInt32 numSeconds, UInt32 startOffs
 		}
 	}
     
-    int numSamples = clientFormat.BytesToFrames(numSeconds * 11025 * 4 * 2);
-    //int startSecs = clientFormat.BytesToFrames((startOffset/11025) 4 * 2);
+    int numSamples = (numSeconds == 0) ? totalFrames : numSeconds * 11025;
+    //int startSecs = clientFormat.BytesToFrames((startOffset/11025) 8);
     
 	const char * what = "";
 	//if(totalFrames > 11025) {
-		NSLog(CFSTR("Doing codegen on %d samples... at offset %d"), numSamples, (startOffset/11025));
-		what = codegen_wrapper(bigBuf, numSamples, (startOffset/11025));
+		NSLog(CFSTR("Doing codegen on %d samples... at offset %d"), numSamples, startOffset);
+		what = codegen_wrapper(bigBuf, numSamples, startOffset);
 		NSLog(CFSTR("Done with codegen"));
 
 	//}
 	free(bigBuf);
-
+    
+    ExtAudioFileDispose(outExtAudioFile);
+    
 	return what;
 }
 
