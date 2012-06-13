@@ -55,26 +55,8 @@ extern char * CompressCodeData(const char * strToCompress);
         int midPoint = nsFpCode.length / 2;
         if (nsFpCode.length > 2 && nsFpCode.length % 2 == 0) {
             
-            NSString *timeStr = [nsFpCode substringWithRange:NSMakeRange(0, midPoint)];
-            NSString *hashStr = [nsFpCode substringWithRange:NSMakeRange(midPoint, midPoint)];
-            NSRange range;
-            
-            int cap = (11025 * ((endOffset/ONE_SEC_OF_AUDIO) - 4)) / 256;
-            unsigned int tc;
-            
-            for (int i = 0, len = timeStr.length / 5; i < len; i += 5)
-            {
-                range = NSMakeRange(i, 5);
-                [[NSScanner scannerWithString:[timeStr substringWithRange:range]] scanHexInt:&tc];
-                
-                if (tc <= cap) 
-                {
-                    [timeCodes appendString:[timeStr substringWithRange:range]];
-                    [hashCodes appendString:[hashStr substringWithRange:range]];
-                } else {
-                    //NSLog(@"tc = %d > cap = %d", tc, cap);
-                }
-            }
+            [timeCodes appendString:[nsFpCode substringWithRange:NSMakeRange(0, midPoint)]];
+            [hashCodes appendString:[nsFpCode substringWithRange:NSMakeRange(midPoint, midPoint)]];
             
             //NSLog(@"timeCodes = %@", timeCodes);
             //NSLog(@"hashCodes = %@", hashCodes);
