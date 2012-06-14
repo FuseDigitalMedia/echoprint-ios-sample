@@ -36,7 +36,7 @@ const char * GetPCMFromFile(char * filename, UInt32 numSeconds, UInt32 startOffs
 		NSLog(CFSTR("err on set format %d"), err);
 	
 	int seconds_to_decode = 30;
-	int bytes_for_bigbuf = sizeof(float)*11025*seconds_to_decode;
+	int bytes_for_bigbuf = sizeof(float)*11025*4*seconds_to_decode;
 	float *bigBuf = (float*) malloc(bytes_for_bigbuf);
 	if(bigBuf == NULL) {
 		NSLog(CFSTR("Error mallocing bigbuf"));
@@ -44,13 +44,20 @@ const char * GetPCMFromFile(char * filename, UInt32 numSeconds, UInt32 startOffs
     
     SInt64 outFrameOffset;
     
-    err = ExtAudioFileSeek(outExtAudioFile, (startOffset * clientFormat.mSampleRate));
+    err = ExtAudioFileSeek(outExtAudioFile, (startOffset * 44100));
     if (err) {
         NSLog(CFSTR("err on seek %d"), err);
     }
     
 	int totalFrames = 0;
-	while (1) {
+    int counter = seconds_to_decode;
+    
+    if (numSeconds > 0) {
+        counter = numSeconds * 4;
+    }
+    
+	while (counter--) {      
+        
 		AudioBufferList fillBufList;
 		fillBufList.mNumberBuffers = 1;
 		UInt32 bufferByteSize = 11025 * 4 * 2; // 1s of audio
@@ -71,7 +78,7 @@ const char * GetPCMFromFile(char * filename, UInt32 numSeconds, UInt32 startOffs
 			break;
 		}
 		if (!numFrames)
-			break; 
+			break;
 		
 		float mono_version[numFrames];
 		float* float_buf = (float*) fillBufList.mBuffers[0].mData;
@@ -90,16 +97,13 @@ const char * GetPCMFromFile(char * filename, UInt32 numSeconds, UInt32 startOffs
 		}
 	}
     
-    int numSamples = (numSeconds == 0) ? totalFrames : numSeconds * 11025;
-    //int startSecs = clientFormat.BytesToFrames((startOffset/11025) 8);
-    
 	const char * what = "";
-	//if(totalFrames > 11025) {
-		NSLog(CFSTR("Doing codegen on %d samples... at offset %d"), numSamples, startOffset);
-		what = codegen_wrapper(bigBuf, numSamples, startOffset);
+	if(totalFrames > 11025) {
+		NSLog(CFSTR("Doing codegen on %d samples... at offset %d"), totalFrames, startOffset);
+		what = codegen_wrapper(bigBuf, totalFrames, startOffset);
 		NSLog(CFSTR("Done with codegen"));
 
-	//}
+	}
 	free(bigBuf);
     
     ExtAudioFileDispose(outExtAudioFile);

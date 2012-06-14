@@ -53,6 +53,13 @@ extern char * CompressCodeData(const char * strToCompress);
         
         NSString *nsFpCode = [NSString stringWithFormat:@"%s", fpCode];
         
+        char *fasdf = CompressCodeData(fpCode);
+        NSString *sdfg = [NSString stringWithCString:fasdf encoding:NSASCIIStringEncoding];
+        NSLog(@"%@", sdfg);
+        free(fasdf);
+        
+        NSLog(@"FPCODE = %@", nsFpCode);
+        
         int midPoint = nsFpCode.length / 2;
         if (nsFpCode.length > 2 && nsFpCode.length % 2 == 0) {
             
